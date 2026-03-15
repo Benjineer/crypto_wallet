@@ -1,0 +1,4 @@
+databaseChangeLog:
+  - include:
+      file: changes/create-shed-lock-table.sql
+      relativeToChangelogFile: true
