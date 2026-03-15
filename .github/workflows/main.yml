@@ -1,0 +1,79 @@
+name: Quality, Security & Regression CI
+
+on:
+  push:
+    branches: [ master, develop ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-test-scan:
+    name: Build, Test and Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # 1. Regression: Run Unit & Integration Tests
+      # Uses Embedded Redis from your Test Configuration
+      - name: Run Unit Tests (Regression)
+        run: mvn clean test
+
+      # 2. Package JAR Artifact
+      - name: Package JAR
+        run: mvn package -DskipTests
+
+      # 3. Static Analysis Security Testing (CodeQL)
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: java
+
+      - name: Autobuild (CodeQL)
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+      # 4. File System Scan (Secrets & Vulnerabilities)
+      - name: Run Trivy FS Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          ignore-unfixed: true
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      # 5. Containerization: Build Local Docker Image
+      - name: Build Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          load: true
+          tags: cryptowallet:latest
+
+      # 6. Container Security: Scan Built Image
+      - name: Scan Docker Image (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'cryptowallet:latest'
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+      # 7. Persistence: Upload JAR as Artifact
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cryptowallet-executable
+          path: target/*.jar
