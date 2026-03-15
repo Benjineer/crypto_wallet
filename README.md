@@ -10,7 +10,7 @@ Backend for cryptocurrency portfolio management featuring real-time tracking, we
 * **Docker & Docker Compose**
 
 ### Setup
-1. **API Configuration**: Obtain a free API key from [CoinCap](https://coincap.io/api) and replace the placeholder `REPLACE_ME` in `application.properties` file:
+1. **API Configuration**: Obtain a free API key from [CoinCap](https://splash.coincap.io/) and replace the placeholder `REPLACE_ME` in `application.properties` file:
 2. **Start Database**: `docker-compose up -d`
 3. **Database Migrations**: `mvn liquibase:update`
 4. **Run Application**: `mvn spring-boot:run`
