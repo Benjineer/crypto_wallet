@@ -1,0 +1,86 @@
+services:
+  postgres:
+    image: 'postgres:17-alpine'
+    container_name: postgres_db
+    environment:
+      - POSTGRES_DB=crypto_wallet_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d crypto_wallet_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wallet-net
+
+  redis:
+    image: 'redis:7-alpine'
+    container_name: redis_cache
+    command: [ "redis-server", "--appendonly", "yes" ]
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wallet-net
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yaml
+    ports:
+      - "9090:9090"
+    networks:
+      - wallet-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
+      - ./grafana/provisioning/dashboards/spring_boot_stats_dashboard_v2.json:/var/lib/grafana/dashboards/spring_boot_stats_dashboard_v2.json
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    networks:
+      - wallet-net
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    networks:
+      - wallet-net
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - ./logs:/var/log/app # Promtail reads the logs from here
+      - ./promtail-config.yaml:/etc/promtail/config.yaml
+    command: -config.file=/etc/promtail/config.yaml
+    networks:
+      - wallet-net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  wallet-net:
+    driver: bridge

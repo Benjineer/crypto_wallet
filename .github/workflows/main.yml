@@ -27,11 +27,11 @@ jobs:
       # 1. Regression: Run Unit & Integration Tests
       # Uses Embedded Redis from your Test Configuration
       - name: Run Unit Tests (Regression)
-        run: mvn clean test
+        run: mvn -T 1C clean test
 
       # 2. Package JAR Artifact
       - name: Package JAR
-        run: mvn package -DskipTests
+        run: mvn -T 1C package -DskipTests
 
       # 3. Static Analysis Security Testing (CodeQL)
       - name: Initialize CodeQL
